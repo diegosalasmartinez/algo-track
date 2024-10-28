@@ -1,5 +1,6 @@
 import { get, type Writable } from 'svelte/store';
-import { aStar, generateRandomPoint, type Point } from './aStar';
+import { type Obstacle, type Point } from './types';
+import { aStar, generateRandomPoint } from './aStar';
 
 export class Canvas {
 	private ctx: CanvasRenderingContext2D;
@@ -7,6 +8,8 @@ export class Canvas {
 	private canvasHeight: number;
 	private start: Point = { x: 0, y: 0 };
 	private end: Writable<Point>;
+	private obstacles: Obstacle[] = [];
+	private obstaclesLength: Writable<number>;
 
 	private path: Point[] = [];
 	private currentStep: number = 0;
@@ -21,11 +24,18 @@ export class Canvas {
 	private destinationWidth: number = 30;
 	private destinationHeight: number = 20;
 
-	constructor(ctx: CanvasRenderingContext2D, width: number, height: number, end: Writable<Point>) {
+	constructor(
+		ctx: CanvasRenderingContext2D,
+		width: number,
+		height: number,
+		end: Writable<Point>,
+		obstaclesLength: Writable<number>
+	) {
 		this.ctx = ctx;
 		this.canvasWidth = width;
 		this.canvasHeight = height;
 		this.end = end;
+		this.obstaclesLength = obstaclesLength;
 	}
 
 	setStart(start: Point) {
@@ -150,6 +160,34 @@ export class Canvas {
 				this.travellerWidth,
 				this.travellerHeight
 			);
+		}
+	}
+
+	drawObstacle(obstacle: Obstacle) {
+		this.ctx.strokeStyle = 'black';
+		this.ctx.lineWidth = 2;
+		this.ctx.beginPath();
+		this.ctx.moveTo(obstacle.trace[0].x, obstacle.trace[0].y);
+
+		for (let i = 1; i < obstacle.trace.length; i++) {
+			this.ctx.lineTo(obstacle.trace[i].x, obstacle.trace[i].y);
+		}
+		this.ctx.stroke();
+
+		this.obstacles.push(obstacle);
+		this.obstaclesLength.set(get(this.obstaclesLength) + 1);
+	}
+
+	checkColission(obstacle: Obstacle) {
+		const remainPath = this.path.slice(this.currentStep);
+
+		for (const point of remainPath) {
+			for (const tracePoint of obstacle.trace) {
+				if (point.x === tracePoint.x && point.y === tracePoint.y) {
+					// TODO: Recalculate path
+					return true;
+				}
+			}
 		}
 	}
 

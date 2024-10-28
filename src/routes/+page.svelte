@@ -1,18 +1,20 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { Canvas } from '$lib/canvas';
-	import { type Point } from '$lib/aStar';
 	import { writable } from 'svelte/store';
+	import { Canvas } from '$lib/canvas';
+	import { type Point } from '$lib/types';
+	import { createObstacle } from '$lib/obstacles';
 
 	let canvas: Canvas;
-	let end = writable<Point>({ x: 100, y: 100 });
+	let end = writable({ x: 100, y: 100 });
+	let obstaclesLength = writable(0);
 
 	onMount(() => {
 		const canvasElement = document.getElementById('myCanvas') as HTMLCanvasElement;
 		if (!canvasElement) return;
 		const ctx = canvasElement.getContext('2d') as CanvasRenderingContext2D;
 
-		canvas = new Canvas(ctx, canvasElement.width, canvasElement.height, end);
+		canvas = new Canvas(ctx, canvasElement.width, canvasElement.height, end, obstaclesLength);
 
 		const start: Point = { x: 10, y: 10 };
 		canvas.setStart(start);
@@ -38,6 +40,11 @@
 
 	const addObstacle = () => {
 		if (!canvas) return;
+
+		// TODO: Read the obstacles from user input
+		const obstacle = createObstacle(80, 80, 100, 'horizontal', 10);
+		canvas.drawObstacle(obstacle);
+		canvas.checkColission(obstacle);
 	};
 </script>
 
