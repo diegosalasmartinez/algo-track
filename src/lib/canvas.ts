@@ -1,3 +1,4 @@
+import { get, type Writable } from 'svelte/store';
 import { aStar, generateRandomPoint, type Point } from './aStar';
 
 export class Canvas {
@@ -5,7 +6,7 @@ export class Canvas {
 	private canvasWidth: number;
 	private canvasHeight: number;
 	private start: Point = { x: 0, y: 0 };
-	private end: Point = { x: 0, y: 0 };
+	private end: Writable<Point>;
 
 	private path: Point[] = [];
 	private currentStep: number = 0;
@@ -20,18 +21,15 @@ export class Canvas {
 	private destinationWidth: number = 30;
 	private destinationHeight: number = 20;
 
-	constructor(ctx: CanvasRenderingContext2D, width: number, height: number) {
+	constructor(ctx: CanvasRenderingContext2D, width: number, height: number, end: Writable<Point>) {
 		this.ctx = ctx;
 		this.canvasWidth = width;
 		this.canvasHeight = height;
+		this.end = end;
 	}
 
 	setStart(start: Point) {
 		this.start = start;
-	}
-
-	setEnd(end: Point) {
-		this.end = end;
 	}
 
 	setTraveller(traveller: HTMLImageElement, width: number, height: number) {
@@ -59,7 +57,7 @@ export class Canvas {
 	}
 
 	calculatePath(startPoint: Point = this.start) {
-		this.path = aStar(startPoint, this.end);
+		this.path = aStar(startPoint, get(this.end));
 		this.currentStep = 0;
 	}
 
@@ -95,8 +93,8 @@ export class Canvas {
 
 		this.ctx.drawImage(
 			this.destination,
-			this.end.x - this.destinationWidth / 2,
-			this.end.y - this.destinationHeight / 2,
+			get(this.end).x - this.destinationWidth / 2,
+			get(this.end).y - this.destinationHeight / 2,
 			this.destinationWidth,
 			this.destinationHeight
 		);
@@ -137,6 +135,6 @@ export class Canvas {
 	}
 
 	calculateNewEnd() {
-		this.end = generateRandomPoint(this.canvasWidth, this.canvasHeight);
+		this.end.set(generateRandomPoint(this.canvasWidth - 20, this.canvasHeight - 20));
 	}
 }
