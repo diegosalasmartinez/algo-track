@@ -5,7 +5,7 @@
 	import { writable } from 'svelte/store';
 
 	let canvas: Canvas;
-	let end = writable<Point>({ x: 400, y: 400 });
+	let end = writable<Point>({ x: 100, y: 100 });
 
 	onMount(() => {
 		const canvasElement = document.getElementById('myCanvas') as HTMLCanvasElement;
@@ -22,7 +22,7 @@
 		canvas.setTraveller(traveller, 30, 20);
 
 		const destination = new Image();
-		destination.src = '/car.png';
+		destination.src = '/destination.png';
 		canvas.setDestination(destination, 30, 20);
 
 		traveller.onload = () => {

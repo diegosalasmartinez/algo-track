@@ -121,13 +121,36 @@ export class Canvas {
 
 		const { x, y } = currentPosition;
 
-		this.ctx.drawImage(
-			this.traveller,
-			x - this.travellerWidth / 2,
-			y - this.travellerHeight / 2,
-			this.travellerWidth,
-			this.travellerHeight
-		);
+		const lastPosition = this.path[this.currentStep - 1];
+		if (lastPosition) {
+			const angle = Math.atan2(y - lastPosition.y, x - lastPosition.x);
+			const needsFlip = Math.abs(angle) > Math.PI / 2;
+
+			this.ctx.save();
+			this.ctx.translate(x, y);
+			this.ctx.rotate(angle);
+
+			if (needsFlip) {
+				this.ctx.scale(1, -1);
+			}
+
+			this.ctx.drawImage(
+				this.traveller,
+				-this.travellerWidth / 2,
+				-this.travellerHeight / 2,
+				this.travellerWidth,
+				this.travellerHeight
+			);
+			this.ctx.restore();
+		} else {
+			this.ctx.drawImage(
+				this.traveller,
+				x - this.travellerWidth / 2,
+				y - this.travellerHeight / 2,
+				this.travellerWidth,
+				this.travellerHeight
+			);
+		}
 	}
 
 	currentPosition() {
