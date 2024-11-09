@@ -1,18 +1,22 @@
 import { get, type Writable } from 'svelte/store';
 import { type Obstacle, type Point } from './types';
-import { aStar, generateRandomPoint } from './aStar';
+import { ObstacleManager } from './obstacles';
+import { aStar, checkCollision, generateRandomPoint } from './aStar';
 
 export class Canvas {
 	private ctx: CanvasRenderingContext2D;
 	private canvasWidth: number;
 	private canvasHeight: number;
+
 	private start: Point = { x: 0, y: 0 };
 	private end: Writable<Point>;
-	private obstacles: Obstacle[] = [];
-	private obstaclesLength: Writable<number>;
+
+	private obstacleManager: ObstacleManager;
 
 	private path: Point[] = [];
 	private currentStep: number = 0;
+
+	private currentTime: Writable<number>;
 	private frameCount: number = 0;
 	private frameRate: number = 2;
 
@@ -29,13 +33,14 @@ export class Canvas {
 		width: number,
 		height: number,
 		end: Writable<Point>,
-		obstaclesLength: Writable<number>
+		currentTime: Writable<number>
 	) {
 		this.ctx = ctx;
 		this.canvasWidth = width;
 		this.canvasHeight = height;
 		this.end = end;
-		this.obstaclesLength = obstaclesLength;
+		this.currentTime = currentTime;
+		this.obstacleManager = new ObstacleManager();
 	}
 
 	setStart(start: Point) {
@@ -55,35 +60,64 @@ export class Canvas {
 	}
 
 	clearTraveller() {
-		const padding = 5;
+		const paddingX = 2;
+		const paddingY = 5;
 		const { x, y } = this.currentPosition();
 
-		this.ctx.clearRect(
-			x - this.travellerWidth / 2 - padding,
-			y - this.travellerHeight / 2 - padding,
-			this.travellerWidth + padding * 2,
-			this.travellerHeight + padding * 2
-		);
+		const elementWidth = this.travellerWidth + paddingX * 2;
+		const elementHeight = this.travellerHeight + paddingY * 2;
+
+		this.ctx.clearRect(x - elementWidth / 2, y - elementHeight / 2, elementWidth, elementHeight);
+	}
+
+	clearRemainingPath() {
+		const elementWidth = 4;
+		const elementHeight = 4;
+
+		for (const point of this.path.slice(this.currentStep)) {
+			this.ctx.clearRect(
+				point.x - elementWidth / 2,
+				point.y - elementHeight / 2,
+				elementWidth,
+				elementHeight
+			);
+		}
+	}
+
+	startNextPath(startPoint?: Point) {
+		this.calculatePath(startPoint);
+		this.drawPath();
+		this.drawDestination();
 	}
 
 	calculatePath(startPoint: Point = this.start) {
-		this.path = aStar(startPoint, get(this.end));
+		this.path = aStar(startPoint, get(this.end), this.obstacleManager.getObstacleSet());
 		this.currentStep = 0;
 	}
 
 	draw() {
 		this.frameCount++;
+
 		if (this.frameCount <= this.frameRate) {
 			requestAnimationFrame(() => this.draw());
 			return;
 		}
 
+		this.currentTime.set(get(this.currentTime) + 1);
 		this.frameCount = 0;
+
+		const currentPosition = this.currentPosition();
+
+		const needsToRecalculate = this.checkIfPathNeedsToRecalculate();
+		if (needsToRecalculate) {
+			this.clearRemainingPath();
+			this.startNextPath(currentPosition);
+			requestAnimationFrame(() => this.draw());
+			return;
+		}
 
 		this.clearTraveller();
 		this.drawTraveller();
-
-		const currentPosition = this.currentPosition();
 
 		// Go to next step
 		this.currentStep++;
@@ -91,9 +125,7 @@ export class Canvas {
 			requestAnimationFrame(() => this.draw());
 		} else {
 			this.calculateNewEnd();
-			this.calculatePath(currentPosition);
-			this.drawPath();
-			this.drawDestination();
+			this.startNextPath(currentPosition);
 			requestAnimationFrame(() => this.draw());
 		}
 	}
@@ -115,7 +147,7 @@ export class Canvas {
 		if (!currentPosition) return;
 
 		this.ctx.strokeStyle = 'blue';
-		this.ctx.lineWidth = 2;
+		this.ctx.lineWidth = 3;
 		this.ctx.beginPath();
 		this.ctx.moveTo(currentPosition.x, currentPosition.y);
 
@@ -165,7 +197,7 @@ export class Canvas {
 
 	drawObstacle(obstacle: Obstacle) {
 		this.ctx.strokeStyle = 'black';
-		this.ctx.lineWidth = 2;
+		this.ctx.lineWidth = 3;
 		this.ctx.beginPath();
 		this.ctx.moveTo(obstacle.trace[0].x, obstacle.trace[0].y);
 
@@ -174,21 +206,19 @@ export class Canvas {
 		}
 		this.ctx.stroke();
 
-		this.obstacles.push(obstacle);
-		this.obstaclesLength.set(get(this.obstaclesLength) + 1);
+		this.obstacleManager.addObstacle(obstacle);
 	}
 
-	checkColission(obstacle: Obstacle) {
-		const remainPath = this.path.slice(this.currentStep);
+	checkIfPathNeedsToRecalculate() {
+		if (!this.obstacleManager.newObstacle) return false;
 
-		for (const point of remainPath) {
-			for (const tracePoint of obstacle.trace) {
-				if (point.x === tracePoint.x && point.y === tracePoint.y) {
-					// TODO: Recalculate path
-					return true;
-				}
-			}
-		}
+		const remainPath = this.path.slice(this.currentStep);
+		const obstacle = this.obstacleManager.getLastObstacle();
+		const thereIsCollision = checkCollision(remainPath, obstacle);
+
+		this.obstacleManager.newObstacle = false;
+
+		return thereIsCollision;
 	}
 
 	currentPosition() {
@@ -196,6 +226,13 @@ export class Canvas {
 	}
 
 	calculateNewEnd() {
-		this.end.set(generateRandomPoint(this.canvasWidth - 20, this.canvasHeight - 20));
+		const padding = 20;
+
+		const randomPoint = generateRandomPoint(
+			this.canvasWidth - padding,
+			this.canvasHeight - padding
+		);
+
+		this.end.set(randomPoint);
 	}
 }

@@ -1,4 +1,4 @@
-import type { Point } from './types';
+import type { Obstacle, Point } from './types';
 
 type Node = {
 	pos: Point;
@@ -12,7 +12,7 @@ function heuristic(a: Point, b: Point): number {
 	return Math.abs(a.x - b.x) + Math.abs(a.y - b.y);
 }
 
-export const aStar = (start: Point, end: Point): Point[] => {
+export const aStar = (start: Point, end: Point, blockedSet: Set<string>): Point[] => {
 	const openSet: Node[] = [];
 	const closedSet: Set<string> = new Set();
 
@@ -56,7 +56,9 @@ export const aStar = (start: Point, end: Point): Point[] => {
 		];
 
 		for (const neighborPos of neighbors) {
-			if (closedSet.has(`${neighborPos.x},${neighborPos.y}`)) continue;
+			const neighborKey = `${neighborPos.x},${neighborPos.y}`;
+
+			if (closedSet.has(neighborKey) || blockedSet.has(neighborKey)) continue;
 
 			const g = currentNode.g + 1;
 			const h = heuristic(neighborPos, end);
@@ -84,6 +86,18 @@ export const aStar = (start: Point, end: Point): Point[] => {
 	}
 
 	return [];
+};
+
+export const checkCollision = (remainPath: Point[], obstacle: Obstacle) => {
+	for (const point of remainPath) {
+		for (const tracePoint of obstacle.trace) {
+			if (point.x === tracePoint.x && point.y === tracePoint.y) {
+				return true;
+			}
+		}
+	}
+
+	return false;
 };
 
 export const generateRandomPoint = (width: number, height: number): Point => {

@@ -6,15 +6,21 @@
 	import { createObstacle } from '$lib/obstacles';
 
 	let canvas: Canvas;
-	let end = writable({ x: 100, y: 100 });
-	let obstaclesLength = writable(0);
+	let end = writable({ x: 100, y: 200 });
+	let currentTime = writable(0);
 
 	onMount(() => {
 		const canvasElement = document.getElementById('myCanvas') as HTMLCanvasElement;
 		if (!canvasElement) return;
 		const ctx = canvasElement.getContext('2d') as CanvasRenderingContext2D;
 
-		canvas = new Canvas(ctx, canvasElement.width, canvasElement.height, end, obstaclesLength);
+		canvas = new Canvas(
+			ctx,
+			canvasElement.width,
+			canvasElement.height,
+			end,
+			currentTime,
+		);
 
 		const start: Point = { x: 10, y: 10 };
 		canvas.setStart(start);
@@ -29,10 +35,7 @@
 
 		traveller.onload = () => {
 			destination.onload = () => {
-				canvas.calculatePath();
-				canvas.drawPath();
-				canvas.drawDestination();
-
+                canvas.startNextPath();
 				canvas.draw();
 			};
 		};
@@ -42,9 +45,8 @@
 		if (!canvas) return;
 
 		// TODO: Read the obstacles from user input
-		const obstacle = createObstacle(80, 80, 100, 'horizontal', 10);
+		const obstacle = createObstacle(80, 80, 100, 'horizontal', 100000);
 		canvas.drawObstacle(obstacle);
-		canvas.checkColission(obstacle);
 	};
 </script>
 
@@ -56,9 +58,9 @@
 		</div>
 		<div class="settings">
 			<div class="info">
+                <p>Current time: <span>{$currentTime}</span></p>
 				<p>Current algorithm: <span>A*</span></p>
 				<p>Destination: <span>{$end.x}, {$end.y}</span></p>
-				<p>Number of obstacles: <span>4</span></p>
 			</div>
 			<div class="divider"></div>
 			<button on:click={addObstacle}>Add Obstacle</button>
