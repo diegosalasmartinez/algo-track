@@ -2,10 +2,10 @@
 	import { onMount } from 'svelte';
 	import { writable } from 'svelte/store';
 	import { Canvas } from '$lib/canvas';
-	import { type Point } from '$lib/types';
 	import { createObstacle } from '$lib/obstacles';
 
 	let canvas: Canvas;
+	let start = writable({ x: 10, y: 10 });
 	let end = writable({ x: 100, y: 200 });
 	let currentTime = writable(0);
 
@@ -14,31 +14,7 @@
 		if (!canvasElement) return;
 		const ctx = canvasElement.getContext('2d') as CanvasRenderingContext2D;
 
-		canvas = new Canvas(
-			ctx,
-			canvasElement.width,
-			canvasElement.height,
-			end,
-			currentTime,
-		);
-
-		const start: Point = { x: 10, y: 10 };
-		canvas.setStart(start);
-
-		const traveller = new Image();
-		traveller.src = '/car.png';
-		canvas.setTraveller(traveller, 30, 20);
-
-		const destination = new Image();
-		destination.src = '/destination.png';
-		canvas.setDestination(destination, 30, 20);
-
-		traveller.onload = () => {
-			destination.onload = () => {
-                canvas.startNextPath();
-				canvas.draw();
-			};
-		};
+		canvas = new Canvas(ctx, canvasElement.width, canvasElement.height, start, end, currentTime);
 	});
 
 	const addObstacle = () => {
@@ -58,7 +34,7 @@
 		</div>
 		<div class="settings">
 			<div class="info">
-                <p>Current time: <span>{$currentTime}</span></p>
+				<p>Current time: <span>{$currentTime}</span></p>
 				<p>Current algorithm: <span>A*</span></p>
 				<p>Destination: <span>{$end.x}, {$end.y}</span></p>
 			</div>

@@ -8,13 +8,12 @@ export class Canvas {
 	private canvasWidth: number;
 	private canvasHeight: number;
 
-	private start: Point = { x: 0, y: 0 };
+	private start: Writable<Point>;
 	private end: Writable<Point>;
-
-	private obstacleManager: ObstacleManager;
-
 	private path: Point[] = [];
 	private currentStep: number = 0;
+
+	private obstacleManager: ObstacleManager;
 
 	private currentTime: Writable<number>;
 	private frameCount: number = 0;
@@ -32,31 +31,45 @@ export class Canvas {
 		ctx: CanvasRenderingContext2D,
 		width: number,
 		height: number,
+		start: Writable<Point>,
 		end: Writable<Point>,
 		currentTime: Writable<number>
 	) {
 		this.ctx = ctx;
 		this.canvasWidth = width;
 		this.canvasHeight = height;
+		this.start = start;
 		this.end = end;
 		this.currentTime = currentTime;
 		this.obstacleManager = new ObstacleManager();
+
+		this.setDestination();
+		this.setTraveller();
 	}
 
-	setStart(start: Point) {
-		this.start = start;
+	setDestination() {
+		const destination = new Image();
+		destination.src = '/destination.png';
+		destination.onload = () => {
+			this.destination = destination;
+			this.checkIfReady();
+		};
 	}
 
-	setTraveller(traveller: HTMLImageElement, width: number, height: number) {
-		this.traveller = traveller;
-		this.travellerWidth = width;
-		this.travellerHeight = height;
+	setTraveller() {
+		const traveller = new Image();
+		traveller.src = '/car.png';
+		traveller.onload = () => {
+			this.traveller = traveller;
+			this.checkIfReady();
+		};
 	}
 
-	setDestination(destination: HTMLImageElement, width: number, height: number) {
-		this.destination = destination;
-		this.destinationWidth = width;
-		this.destinationHeight = height;
+	checkIfReady() {
+		if (this.destination && this.traveller) {
+			this.startNextPath();
+			this.draw();
+		}
 	}
 
 	clearTraveller() {
@@ -90,7 +103,7 @@ export class Canvas {
 		this.drawDestination();
 	}
 
-	calculatePath(startPoint: Point = this.start) {
+	calculatePath(startPoint: Point = get(this.start)) {
 		this.path = aStar(startPoint, get(this.end), this.obstacleManager.getObstacleSet());
 		this.currentStep = 0;
 	}
