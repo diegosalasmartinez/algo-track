@@ -1,31 +1,30 @@
 import { get, type Writable } from 'svelte/store';
 import { type Obstacle, type Point } from './types';
+import { Grid } from './grid';
 import { ObstacleManager } from './obstacles';
-import { aStar, checkCollision, generateRandomPoint } from './aStar';
+import { aStar, checkCollision } from './aStar';
 
 export class Canvas {
 	private ctx: CanvasRenderingContext2D;
 	private canvasWidth: number;
 	private canvasHeight: number;
 
+	private cellSize = 20;
+
 	private start: Writable<Point>;
 	private end: Writable<Point>;
 	private path: Point[] = [];
 	private currentStep: number = 0;
 
+	private grid: Grid;
 	private obstacleManager: ObstacleManager;
 
 	private currentTime: Writable<number>;
 	private frameCount: number = 0;
-	private frameRate: number = 2;
+	private frameRate: number = 40;
 
 	private traveller?: HTMLImageElement;
-	private travellerWidth: number = 30;
-	private travellerHeight: number = 20;
-
 	private destination?: HTMLImageElement;
-	private destinationWidth: number = 30;
-	private destinationHeight: number = 20;
 
 	constructor(
 		ctx: CanvasRenderingContext2D,
@@ -41,10 +40,29 @@ export class Canvas {
 		this.start = start;
 		this.end = end;
 		this.currentTime = currentTime;
+
+		this.grid = new Grid(
+			ctx,
+			this.canvasWidth / this.cellSize,
+			this.canvasHeight / this.cellSize,
+			this.cellSize
+		);
 		this.obstacleManager = new ObstacleManager();
 
+		this.calculateStart();
+		this.calculateEnd();
 		this.setDestination();
 		this.setTraveller();
+	}
+
+	calculateStart() {
+		const point = this.grid.getRandomEmptyCell();
+		this.start.set(point);
+	}
+
+	calculateEnd() {
+		const point = this.grid.getRandomEmptyCell();
+		this.end.set(point);
 	}
 
 	setDestination() {
@@ -72,17 +90,6 @@ export class Canvas {
 		}
 	}
 
-	clearTraveller() {
-		const paddingX = 2;
-		const paddingY = 5;
-		const { x, y } = this.currentPosition();
-
-		const elementWidth = this.travellerWidth + paddingX * 2;
-		const elementHeight = this.travellerHeight + paddingY * 2;
-
-		this.ctx.clearRect(x - elementWidth / 2, y - elementHeight / 2, elementWidth, elementHeight);
-	}
-
 	clearRemainingPath() {
 		const elementWidth = 4;
 		const elementHeight = 4;
@@ -104,7 +111,16 @@ export class Canvas {
 	}
 
 	calculatePath(startPoint: Point = get(this.start)) {
-		this.path = aStar(startPoint, get(this.end), this.obstacleManager.getObstacleSet());
+		//const pathCalculated = aStar(startPoint, get(this.end), this.obstacleManager.getObstacleSet());
+		const pathCalculated = aStar(startPoint, get(this.end), this.grid.getHousesSet());
+		this.path = pathCalculated;
+
+		// If there is no path, we need to recalculate the end point
+		if (this.path.length === 0) {
+			this.calculateNewEnd();
+			this.startNextPath(startPoint);
+		}
+
 		this.currentStep = 0;
 	}
 
@@ -121,13 +137,13 @@ export class Canvas {
 
 		const currentPosition = this.currentPosition();
 
-		const needsToRecalculate = this.checkIfPathNeedsToRecalculate();
-		if (needsToRecalculate) {
-			this.clearRemainingPath();
-			this.startNextPath(currentPosition);
-			requestAnimationFrame(() => this.draw());
-			return;
-		}
+		//const needsToRecalculate = this.checkIfPathNeedsToRecalculate();
+		//if (needsToRecalculate) {
+		//	this.clearRemainingPath();
+		//	this.startNextPath(currentPosition);
+		//	requestAnimationFrame(() => this.draw());
+		//	return;
+		//}
 
 		this.clearTraveller();
 		this.drawTraveller();
@@ -146,28 +162,36 @@ export class Canvas {
 	drawDestination() {
 		if (!this.destination) return;
 
-		this.ctx.drawImage(
-			this.destination,
-			get(this.end).x - this.destinationWidth / 2,
-			get(this.end).y - this.destinationHeight / 2,
-			this.destinationWidth,
-			this.destinationHeight
-		);
+		const positionX = get(this.end).x * this.cellSize;
+		const positionY = get(this.end).y * this.cellSize;
+
+		this.ctx.drawImage(this.destination, positionX, positionY, this.cellSize, this.cellSize);
 	}
 
 	drawPath() {
 		const currentPosition = this.currentPosition();
 		if (!currentPosition) return;
 
-		this.ctx.strokeStyle = 'blue';
-		this.ctx.lineWidth = 3;
-		this.ctx.beginPath();
-		this.ctx.moveTo(currentPosition.x, currentPosition.y);
+		const minifiedPath = this.path;
 
-		for (let i = this.currentStep + 1; i < this.path.length; i++) {
-			this.ctx.lineTo(this.path[i].x, this.path[i].y);
+		for (let i = 1; i < minifiedPath.length; i++) {
+			const positionX = minifiedPath[i].x * this.cellSize;
+			const positionY = minifiedPath[i].y * this.cellSize;
+
+			this.ctx.fillStyle = 'blue';
+			this.ctx.fillRect(positionX, positionY, this.cellSize, this.cellSize);
 		}
 		this.ctx.stroke();
+	}
+
+	clearTraveller() {
+		const position = this.prevPosition();
+		if (!position) return;
+
+		const positionX = position.x * this.cellSize;
+		const positionY = position.y * this.cellSize;
+
+		this.ctx.clearRect(positionX, positionY, this.cellSize, this.cellSize);
 	}
 
 	drawTraveller() {
@@ -182,7 +206,10 @@ export class Canvas {
 			const needsFlip = Math.abs(angle) > Math.PI / 2;
 
 			this.ctx.save();
-			this.ctx.translate(x, y);
+			this.ctx.translate(
+				x * this.cellSize + this.cellSize / 2,
+				y * this.cellSize + this.cellSize / 2
+			);
 			this.ctx.rotate(angle);
 
 			if (needsFlip) {
@@ -191,19 +218,19 @@ export class Canvas {
 
 			this.ctx.drawImage(
 				this.traveller,
-				-this.travellerWidth / 2,
-				-this.travellerHeight / 2,
-				this.travellerWidth,
-				this.travellerHeight
+				-this.cellSize / 2,
+				-this.cellSize / 2,
+				this.cellSize,
+				this.cellSize
 			);
 			this.ctx.restore();
 		} else {
 			this.ctx.drawImage(
 				this.traveller,
-				x - this.travellerWidth / 2,
-				y - this.travellerHeight / 2,
-				this.travellerWidth,
-				this.travellerHeight
+				x * this.cellSize,
+				y * this.cellSize,
+				this.cellSize,
+				this.cellSize
 			);
 		}
 	}
@@ -234,18 +261,20 @@ export class Canvas {
 		return thereIsCollision;
 	}
 
+	prevPosition() {
+		if (this.currentStep >= 1) {
+			return this.path[this.currentStep - 1];
+		}
+		return null;
+	}
+
 	currentPosition() {
 		return this.path[this.currentStep];
 	}
 
 	calculateNewEnd() {
-		const padding = 20;
-
-		const randomPoint = generateRandomPoint(
-			this.canvasWidth - padding,
-			this.canvasHeight - padding
-		);
-
+		//TODO: Change this to a new house
+		const randomPoint = this.grid.getRandomEmptyCell();
 		this.end.set(randomPoint);
 	}
 }

@@ -5,8 +5,8 @@
 	import { createObstacle } from '$lib/obstacles';
 
 	let canvas: Canvas;
-	let start = writable({ x: 10, y: 10 });
-	let end = writable({ x: 100, y: 200 });
+	let start = writable({ x: 0, y: 0 });
+	let end = writable({ x: 0, y: 0 });
 	let currentTime = writable(0);
 
 	onMount(() => {

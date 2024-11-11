@@ -13,6 +13,13 @@ function heuristic(a: Point, b: Point): number {
 }
 
 export const aStar = (start: Point, end: Point, blockedSet: Set<string>): Point[] => {
+	// Check if the start or end point is blocked
+	const startKey = `${start.x},${start.y}`;
+	const endKey = `${end.x},${end.y}`;
+	if (blockedSet.has(startKey) || blockedSet.has(endKey)) {
+		return [];
+	}
+
 	const openSet: Node[] = [];
 	const closedSet: Set<string> = new Set();
 
@@ -35,6 +42,7 @@ export const aStar = (start: Point, end: Point, blockedSet: Set<string>): Point[
 		const currentNode = openSet[currentIndex];
 		const { pos } = currentNode;
 
+		// Check if the current node is the end node
 		if (pos.x === end.x && pos.y === end.y) {
 			const path: Point[] = [];
 			let temp: Node | null = currentNode;
@@ -42,7 +50,7 @@ export const aStar = (start: Point, end: Point, blockedSet: Set<string>): Point[
 				path.push(temp.pos);
 				temp = temp.parent;
 			}
-			return path.reverse();
+			return path.reverse(); // Return the path
 		}
 
 		openSet.splice(currentIndex, 1);
