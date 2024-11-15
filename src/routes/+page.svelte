@@ -28,9 +28,9 @@
 
 <main>
 	<h1>ALGO TRACK</h1>
-	<section>
+	<section class="grid">
 		<div class="canvas-drawer">
-			<canvas id="myCanvas" width="500" height="500"></canvas>
+			<canvas id="myCanvas" width="350" height="630"></canvas>
 		</div>
 		<div class="settings">
 			<div class="info">
@@ -92,4 +92,10 @@
 		background-color: #ccc;
 		margin: 20px 0;
 	}
+
+    @media (max-width: 600px) {
+        section {
+            flex-direction: column;
+        }
+    }
 </style>

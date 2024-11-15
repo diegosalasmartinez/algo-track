@@ -31,7 +31,7 @@ export class Grid {
 
 	setHouse() {
 		const house = new Image();
-		house.src = '/destination.png';
+		house.src = '/house.png';
 		house.onload = () => {
 			this.house = house;
 			this.fillGrid();
@@ -39,21 +39,23 @@ export class Grid {
 	}
 
 	initGrid() {
-		for (let x = 0; x < this.gridHeight; x++) {
-			this.grid[x] = [];
-			for (let y = 0; y < this.gridWidth; y++) {
+		for (let y = 0; y < this.gridHeight; y++) {
+			this.grid[y] = [];
+			for (let x = 0; x < this.gridWidth; x++) {
 				const isHouse = houses.some((house) => house.x === x && house.y === y);
+
+				const positionX = x * this.cellSize;
+				const positionY = y * this.cellSize;
 
 				if (isHouse) {
 					this.houses.push({ x, y });
 				} else {
 					this.emptyRoad.push({ x, y });
+					this.ctx.fillStyle = '#353935';
+					this.ctx.fillRect(positionX, positionY, this.cellSize, this.cellSize);
 				}
 
-				const positionX = x * this.cellSize;
-				const positionY = y * this.cellSize;
-
-				this.grid[x][y] = {
+				this.grid[y][x] = {
 					position: { x: positionX, y: positionY },
 					type: isHouse ? 'house' : 'street'
 				};
@@ -66,9 +68,8 @@ export class Grid {
 			const positionX = house.x * this.cellSize;
 			const positionY = house.y * this.cellSize;
 
-			this.ctx.fillStyle = 'gray';
+			this.ctx.fillStyle = '#F9F6EE';
 			this.ctx.fillRect(positionX, positionY, this.cellSize, this.cellSize);
-			this.ctx.strokeRect(positionX, positionY, this.cellSize, this.cellSize);
 			this.ctx.drawImage(
 				this.house ?? new Image(),
 				positionX,
