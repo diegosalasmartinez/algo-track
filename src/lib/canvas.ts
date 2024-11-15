@@ -3,13 +3,14 @@ import { type Obstacle, type Point } from './types';
 import { Grid } from './grid';
 import { ObstacleManager } from './obstacles';
 import { aStar, checkCollision } from './aStar';
+import { Traveller } from './traveller';
 
 export class Canvas {
 	private ctx: CanvasRenderingContext2D;
 	private canvasWidth: number;
 	private canvasHeight: number;
 
-	private cellSize = 20;
+	private cellSize = 35;
 
 	private start: Writable<Point>;
 	private end: Writable<Point>;
@@ -17,13 +18,13 @@ export class Canvas {
 	private currentStep: number = 0;
 
 	private grid: Grid;
+	private traveller: Traveller;
 	private obstacleManager: ObstacleManager;
 
 	private currentTime: Writable<number>;
 	private frameCount: number = 0;
-	private frameRate: number = 40;
+	private frameRate: number = 80;
 
-	private traveller?: HTMLImageElement;
 	private destination?: HTMLImageElement;
 
 	constructor(
@@ -41,12 +42,8 @@ export class Canvas {
 		this.end = end;
 		this.currentTime = currentTime;
 
-		this.grid = new Grid(
-			ctx,
-			this.canvasWidth / this.cellSize,
-			this.canvasHeight / this.cellSize,
-			this.cellSize
-		);
+		this.grid = new Grid(ctx, this.canvasWidth, this.canvasHeight, this.cellSize);
+		this.traveller = new Traveller(this.ctx, this.cellSize);
 		this.obstacleManager = new ObstacleManager();
 
 		this.calculateStart();
@@ -75,10 +72,10 @@ export class Canvas {
 	}
 
 	setTraveller() {
-		const traveller = new Image();
-		traveller.src = '/car.png';
-		traveller.onload = () => {
-			this.traveller = traveller;
+		const travellerImage = new Image();
+		travellerImage.src = '/car.png';
+		travellerImage.onload = () => {
+			this.traveller.setImage(travellerImage);
 			this.checkIfReady();
 		};
 	}
@@ -106,6 +103,7 @@ export class Canvas {
 
 	startNextPath(startPoint?: Point) {
 		this.calculatePath(startPoint);
+		this.traveller.setPath(this.path);
 		this.drawPath();
 		this.drawDestination();
 	}
@@ -135,7 +133,7 @@ export class Canvas {
 		this.currentTime.set(get(this.currentTime) + 1);
 		this.frameCount = 0;
 
-		const currentPosition = this.currentPosition();
+		const currentPosition = this.traveller.currentPosition();
 
 		//const needsToRecalculate = this.checkIfPathNeedsToRecalculate();
 		//if (needsToRecalculate) {
@@ -145,16 +143,14 @@ export class Canvas {
 		//	return;
 		//}
 
-		this.clearTraveller();
-		this.drawTraveller();
+		this.traveller.draw();
+		this.traveller.nextStep();
 
-		// Go to next step
-		this.currentStep++;
-		if (this.currentStep < this.path.length) {
-			requestAnimationFrame(() => this.draw());
-		} else {
+		if (this.traveller.hasCompletedPath()) {
 			this.calculateNewEnd();
 			this.startNextPath(currentPosition);
+			requestAnimationFrame(() => this.draw());
+		} else {
 			requestAnimationFrame(() => this.draw());
 		}
 	}
@@ -171,68 +167,27 @@ export class Canvas {
 	drawPath() {
 		const currentPosition = this.currentPosition();
 		if (!currentPosition) return;
+		this.ctx.strokeStyle = '#89CFF0'; // Color de la línea
+		this.ctx.lineWidth = 4; // Ancho de la línea, puedes ajustarlo según prefieras
+		this.ctx.beginPath();
 
-		const minifiedPath = this.path;
+		const startPosition = this.path[0];
+		if (!startPosition) return;
 
-		for (let i = 1; i < minifiedPath.length; i++) {
-			const positionX = minifiedPath[i].x * this.cellSize;
-			const positionY = minifiedPath[i].y * this.cellSize;
+		this.ctx.moveTo(
+			startPosition.x * this.cellSize + this.cellSize / 2,
+			startPosition.y * this.cellSize + this.cellSize / 2
+		);
 
-			this.ctx.fillStyle = 'blue';
-			this.ctx.fillRect(positionX, positionY, this.cellSize, this.cellSize);
+		for (let i = 1; i < this.path.length; i++) {
+			const positionX = this.path[i].x * this.cellSize + this.cellSize / 2;
+			const positionY = this.path[i].y * this.cellSize + this.cellSize / 2;
+
+			this.ctx.lineTo(positionX, positionY);
+			//this.ctx.fillStyle = '#89CFF0';
+			//this.ctx.fillRect(positionX, positionY, this.cellSize / 2, this.cellSize / 2);
 		}
 		this.ctx.stroke();
-	}
-
-	clearTraveller() {
-		const position = this.prevPosition();
-		if (!position) return;
-
-		const positionX = position.x * this.cellSize;
-		const positionY = position.y * this.cellSize;
-
-		this.ctx.clearRect(positionX, positionY, this.cellSize, this.cellSize);
-	}
-
-	drawTraveller() {
-		const currentPosition = this.currentPosition();
-		if (!currentPosition || !this.traveller) return;
-
-		const { x, y } = currentPosition;
-
-		const lastPosition = this.path[this.currentStep - 1];
-		if (lastPosition) {
-			const angle = Math.atan2(y - lastPosition.y, x - lastPosition.x);
-			const needsFlip = Math.abs(angle) > Math.PI / 2;
-
-			this.ctx.save();
-			this.ctx.translate(
-				x * this.cellSize + this.cellSize / 2,
-				y * this.cellSize + this.cellSize / 2
-			);
-			this.ctx.rotate(angle);
-
-			if (needsFlip) {
-				this.ctx.scale(1, -1);
-			}
-
-			this.ctx.drawImage(
-				this.traveller,
-				-this.cellSize / 2,
-				-this.cellSize / 2,
-				this.cellSize,
-				this.cellSize
-			);
-			this.ctx.restore();
-		} else {
-			this.ctx.drawImage(
-				this.traveller,
-				x * this.cellSize,
-				y * this.cellSize,
-				this.cellSize,
-				this.cellSize
-			);
-		}
 	}
 
 	drawObstacle(obstacle: Obstacle) {
@@ -259,13 +214,6 @@ export class Canvas {
 		this.obstacleManager.newObstacle = false;
 
 		return thereIsCollision;
-	}
-
-	prevPosition() {
-		if (this.currentStep >= 1) {
-			return this.path[this.currentStep - 1];
-		}
-		return null;
 	}
 
 	currentPosition() {

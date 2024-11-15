@@ -2,13 +2,12 @@ import type { GridCell, Point } from './types';
 import { houses } from './data';
 
 export class Grid {
-	private ctx: CanvasRenderingContext2D;
-	private gridWidth: number;
-	private gridHeight: number;
-	private cellSize: number;
+	private readonly ctx: CanvasRenderingContext2D;
+	private readonly numColumns: number;
+	private readonly numRows: number;
+	private readonly cellSize: number;
 
 	private house?: HTMLImageElement;
-
 	private grid: GridCell[][] = [];
 	private houses: Point[] = [];
 	private emptyRoad: Point[] = [];
@@ -21,8 +20,8 @@ export class Grid {
 		cellSize: number
 	) {
 		this.ctx = ctx;
-		this.gridWidth = gridWidth;
-		this.gridHeight = gridHeight;
+		this.numColumns = gridWidth / cellSize;
+		this.numRows = gridHeight / cellSize;
 		this.cellSize = cellSize;
 
 		this.initGrid();
@@ -39,9 +38,9 @@ export class Grid {
 	}
 
 	initGrid() {
-		for (let y = 0; y < this.gridHeight; y++) {
+		for (let y = 0; y < this.numRows; y++) {
 			this.grid[y] = [];
-			for (let x = 0; x < this.gridWidth; x++) {
+			for (let x = 0; x < this.numColumns; x++) {
 				const isHouse = houses.some((house) => house.x === x && house.y === y);
 
 				const positionX = x * this.cellSize;
