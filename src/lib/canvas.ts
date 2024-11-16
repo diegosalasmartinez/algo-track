@@ -1,9 +1,9 @@
 import { get, type Writable } from 'svelte/store';
 import { type Obstacle, type Point } from './types';
-import { Grid } from './grid';
 import { ObstacleManager } from './obstacles';
-//import { checkCollision } from './aStar';
 import { Traveller } from './traveller';
+import { Grid } from './grid';
+//import { checkCollision } from './aStar';
 
 export class Canvas {
 	private readonly ctx: CanvasRenderingContext2D;
@@ -16,7 +16,6 @@ export class Canvas {
 	private grid: Grid;
 	private traveller: Traveller;
 	private obstacleManager: ObstacleManager;
-	private destination?: HTMLImageElement;
 
 	private currentTime: Writable<number>;
 	private frameCount: number = 0;
@@ -137,8 +136,6 @@ export class Canvas {
 	}
 
 	drawDestination() {
-		if (!this.destination) return;
-
 		const positionX = get(this.end).x * this.cellSize;
 		const positionY = get(this.end).y * this.cellSize;
 		this.grid.drawDestination(positionX, positionY);
