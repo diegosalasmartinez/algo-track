@@ -2,30 +2,25 @@ import { get, type Writable } from 'svelte/store';
 import { type Obstacle, type Point } from './types';
 import { Grid } from './grid';
 import { ObstacleManager } from './obstacles';
-import { aStar, checkCollision } from './aStar';
+//import { checkCollision } from './aStar';
 import { Traveller } from './traveller';
 
 export class Canvas {
-	private ctx: CanvasRenderingContext2D;
-	private canvasWidth: number;
-	private canvasHeight: number;
-
-	private cellSize = 35;
+	private readonly ctx: CanvasRenderingContext2D;
+	private readonly canvasWidth: number;
+	private readonly canvasHeight: number;
+	private readonly cellSize = 35;
 
 	private start: Writable<Point>;
 	private end: Writable<Point>;
-	private path: Point[] = [];
-	private currentStep: number = 0;
-
 	private grid: Grid;
 	private traveller: Traveller;
 	private obstacleManager: ObstacleManager;
+	private destination?: HTMLImageElement;
 
 	private currentTime: Writable<number>;
 	private frameCount: number = 0;
-	private frameRate: number = 80;
-
-	private destination?: HTMLImageElement;
+	private frameRate: number = 50;
 
 	constructor(
 		ctx: CanvasRenderingContext2D,
@@ -46,29 +41,19 @@ export class Canvas {
 		this.traveller = new Traveller(this.ctx, this.cellSize);
 		this.obstacleManager = new ObstacleManager();
 
-		this.calculateStart();
-		this.calculateEnd();
-		this.setDestination();
+		this.setStartPoint();
+		this.setEndPoint();
 		this.setTraveller();
 	}
 
-	calculateStart() {
+	setStartPoint() {
 		const point = this.grid.getRandomEmptyCell();
 		this.start.set(point);
 	}
 
-	calculateEnd() {
-		const point = this.grid.getRandomEmptyCell();
+	setEndPoint() {
+		const point = this.grid.getRandomHouse();
 		this.end.set(point);
-	}
-
-	setDestination() {
-		const destination = new Image();
-		destination.src = '/destination.png';
-		destination.onload = () => {
-			this.destination = destination;
-			this.checkIfReady();
-		};
 	}
 
 	setTraveller() {
@@ -76,64 +61,48 @@ export class Canvas {
 		travellerImage.src = '/car.png';
 		travellerImage.onload = () => {
 			this.traveller.setImage(travellerImage);
-			this.checkIfReady();
+			this.drawPath(get(this.start));
+			this.drawCanvas();
 		};
 	}
 
-	checkIfReady() {
-		if (this.destination && this.traveller) {
-			this.startNextPath();
-			this.draw();
-		}
-	}
+	//clearRemainingPath() {
+	//	const elementWidth = 4;
+	//	const elementHeight = 4;
+	//
+	//	for (const point of this.path.slice(this.currentStep)) {
+	//		this.ctx.clearRect(
+	//			point.x - elementWidth / 2,
+	//			point.y - elementHeight / 2,
+	//			elementWidth,
+	//			elementHeight
+	//		);
+	//	}
+	//}
 
-	clearRemainingPath() {
-		const elementWidth = 4;
-		const elementHeight = 4;
+	drawPath(startPoint: Point) {
+		const endPoint = get(this.end);
 
-		for (const point of this.path.slice(this.currentStep)) {
-			this.ctx.clearRect(
-				point.x - elementWidth / 2,
-				point.y - elementHeight / 2,
-				elementWidth,
-				elementHeight
-			);
-		}
-	}
+		const blockedCells = new Set<string>(this.grid.getHousesSet());
+		blockedCells.delete(`${endPoint.x},${endPoint.y}`);
 
-	startNextPath(startPoint?: Point) {
-		this.calculatePath(startPoint);
-		this.traveller.setPath(this.path);
-		this.drawPath();
+		const hasSolution = this.traveller.calculatePath(startPoint, endPoint, blockedCells);
+		if (!hasSolution) return false;
+
 		this.drawDestination();
+		return true;
 	}
 
-	calculatePath(startPoint: Point = get(this.start)) {
-		//const pathCalculated = aStar(startPoint, get(this.end), this.obstacleManager.getObstacleSet());
-		const pathCalculated = aStar(startPoint, get(this.end), this.grid.getHousesSet());
-		this.path = pathCalculated;
-
-		// If there is no path, we need to recalculate the end point
-		if (this.path.length === 0) {
-			this.calculateNewEnd();
-			this.startNextPath(startPoint);
-		}
-
-		this.currentStep = 0;
-	}
-
-	draw() {
+	drawCanvas() {
 		this.frameCount++;
 
 		if (this.frameCount <= this.frameRate) {
-			requestAnimationFrame(() => this.draw());
+			requestAnimationFrame(() => this.drawCanvas());
 			return;
 		}
 
 		this.currentTime.set(get(this.currentTime) + 1);
 		this.frameCount = 0;
-
-		const currentPosition = this.traveller.currentPosition();
 
 		//const needsToRecalculate = this.checkIfPathNeedsToRecalculate();
 		//if (needsToRecalculate) {
@@ -143,16 +112,28 @@ export class Canvas {
 		//	return;
 		//}
 
-		this.traveller.draw();
-		this.traveller.nextStep();
+		this.traveller.drawTraveller();
 
 		if (this.traveller.hasCompletedPath()) {
-			this.calculateNewEnd();
-			this.startNextPath(currentPosition);
-			requestAnimationFrame(() => this.draw());
+			this.startNextPath(this.traveller.currentPosition());
+			requestAnimationFrame(() => this.drawCanvas());
 		} else {
-			requestAnimationFrame(() => this.draw());
+			this.traveller.nextStep();
+			requestAnimationFrame(() => this.drawCanvas());
 		}
+	}
+
+	startNextPath(currentPosition: Point) {
+		const lastEndPoint = get(this.end);
+		const positionX = lastEndPoint.x * this.cellSize;
+		const positionY = lastEndPoint.y * this.cellSize;
+
+		let hasSolution = false;
+		do {
+			this.setEndPoint();
+			hasSolution = this.drawPath(currentPosition);
+			this.grid.drawHouse(positionX, positionY);
+		} while (!hasSolution);
 	}
 
 	drawDestination() {
@@ -160,34 +141,7 @@ export class Canvas {
 
 		const positionX = get(this.end).x * this.cellSize;
 		const positionY = get(this.end).y * this.cellSize;
-
-		this.ctx.drawImage(this.destination, positionX, positionY, this.cellSize, this.cellSize);
-	}
-
-	drawPath() {
-		const currentPosition = this.currentPosition();
-		if (!currentPosition) return;
-		this.ctx.strokeStyle = '#89CFF0'; // Color de la línea
-		this.ctx.lineWidth = 4; // Ancho de la línea, puedes ajustarlo según prefieras
-		this.ctx.beginPath();
-
-		const startPosition = this.path[0];
-		if (!startPosition) return;
-
-		this.ctx.moveTo(
-			startPosition.x * this.cellSize + this.cellSize / 2,
-			startPosition.y * this.cellSize + this.cellSize / 2
-		);
-
-		for (let i = 1; i < this.path.length; i++) {
-			const positionX = this.path[i].x * this.cellSize + this.cellSize / 2;
-			const positionY = this.path[i].y * this.cellSize + this.cellSize / 2;
-
-			this.ctx.lineTo(positionX, positionY);
-			//this.ctx.fillStyle = '#89CFF0';
-			//this.ctx.fillRect(positionX, positionY, this.cellSize / 2, this.cellSize / 2);
-		}
-		this.ctx.stroke();
+		this.grid.drawDestination(positionX, positionY);
 	}
 
 	drawObstacle(obstacle: Obstacle) {
@@ -204,25 +158,15 @@ export class Canvas {
 		this.obstacleManager.addObstacle(obstacle);
 	}
 
-	checkIfPathNeedsToRecalculate() {
-		if (!this.obstacleManager.newObstacle) return false;
-
-		const remainPath = this.path.slice(this.currentStep);
-		const obstacle = this.obstacleManager.getLastObstacle();
-		const thereIsCollision = checkCollision(remainPath, obstacle);
-
-		this.obstacleManager.newObstacle = false;
-
-		return thereIsCollision;
-	}
-
-	currentPosition() {
-		return this.path[this.currentStep];
-	}
-
-	calculateNewEnd() {
-		//TODO: Change this to a new house
-		const randomPoint = this.grid.getRandomEmptyCell();
-		this.end.set(randomPoint);
-	}
+	//checkIfPathNeedsToRecalculate() {
+	//	if (!this.obstacleManager.newObstacle) return false;
+	//
+	//	const remainPath = this.path.slice(this.currentStep);
+	//	const obstacle = this.obstacleManager.getLastObstacle();
+	//	const thereIsCollision = checkCollision(remainPath, obstacle);
+	//
+	//	this.obstacleManager.newObstacle = false;
+	//
+	//	return thereIsCollision;
+	//}
 }

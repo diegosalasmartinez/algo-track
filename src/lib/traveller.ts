@@ -1,28 +1,35 @@
 import type { Point } from './types';
+import { Path } from './path';
+import { aStar } from './aStar';
 
 export class Traveller {
 	private readonly ctx: CanvasRenderingContext2D;
 	private readonly cellSize: number;
+	private readonly path: Path;
 
 	private travellerImage?: HTMLImageElement;
-	private path: Point[] = [];
 	private currentStep: number = 0;
 
 	constructor(ctx: CanvasRenderingContext2D, cellSize: number) {
 		this.ctx = ctx;
 		this.cellSize = cellSize;
+		this.path = new Path(ctx, cellSize);
 	}
 
 	setImage(image: HTMLImageElement) {
 		this.travellerImage = image;
 	}
 
+	isReady() {
+		return !!this.travellerImage;
+	}
+
 	setPath(path: Point[]) {
-		this.path = path;
+		this.path.setPath(path);
 		this.currentStep = 0;
 	}
 
-	clear() {
+	clearTraveller() {
 		const prevPosition = this.prevPosition();
 		if (prevPosition) {
 			const positionX = prevPosition.x * this.cellSize;
@@ -42,14 +49,14 @@ export class Traveller {
 		}
 	}
 
-	draw() {
-		this.clear();
+	drawTraveller() {
+		this.clearTraveller();
 
 		const currentPosition = this.currentPosition();
 		if (!currentPosition || !this.travellerImage) return;
 
 		const { x, y } = currentPosition;
-		const lastPosition = this.path[this.currentStep - 1];
+		const lastPosition = this.path.getPath()[this.currentStep - 1];
 		const travellerHeight = 28;
 		const travellerWidth = 20;
 
@@ -93,16 +100,29 @@ export class Traveller {
 
 	prevPosition() {
 		if (this.currentStep >= 1) {
-			return this.path[this.currentStep - 1];
+			return this.path.getPath()[this.currentStep - 1];
 		}
 		return null;
 	}
 
 	currentPosition() {
-		return this.path[this.currentStep];
+		return this.path.getPath()[this.currentStep];
 	}
 
 	hasCompletedPath() {
-		return this.currentStep >= this.path.length;
+		return this.currentStep + 2 >= this.path.getPath().length;
+	}
+
+	calculatePath(startPoint: Point, endPoint: Point, blockedCells: Set<string>) {
+		const newPath = aStar(startPoint, endPoint, blockedCells);
+		if (newPath.length === 0) return false;
+
+		this.currentStep = 0;
+
+		// We don't arrive the final position, so we need to clear it manually
+		this.path.clearFinalPath();
+		this.path.setPath(newPath);
+		this.path.drawPath();
+		return true;
 	}
 }

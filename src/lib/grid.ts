@@ -50,8 +50,7 @@ export class Grid {
 					this.houses.push({ x, y });
 				} else {
 					this.emptyRoad.push({ x, y });
-					this.ctx.fillStyle = '#353935';
-					this.ctx.fillRect(positionX, positionY, this.cellSize, this.cellSize);
+					this.drawStreet(positionX, positionY);
 				}
 
 				this.grid[y][x] = {
@@ -67,18 +66,30 @@ export class Grid {
 			const positionX = house.x * this.cellSize;
 			const positionY = house.y * this.cellSize;
 
-			this.ctx.fillStyle = '#F9F6EE';
-			this.ctx.fillRect(positionX, positionY, this.cellSize, this.cellSize);
-			this.ctx.drawImage(
-				this.house ?? new Image(),
-				positionX,
-				positionY,
-				this.cellSize,
-				this.cellSize
-			);
-
+			this.drawHouse(positionX, positionY);
 			this.housesSet.add(`${house.x},${house.y}`);
 		}
+	}
+
+	drawStreet(positionX: number, positionY: number) {
+		this.ctx.fillStyle = '#353935';
+		this.ctx.fillRect(positionX, positionY, this.cellSize, this.cellSize);
+	}
+
+	drawHouse(positionX: number, positionY: number, color: string = '#F9F6EE') {
+		this.ctx.fillStyle = color;
+		this.ctx.fillRect(positionX, positionY, this.cellSize, this.cellSize);
+		this.ctx.drawImage(
+			this.house ?? new Image(),
+			positionX,
+			positionY,
+			this.cellSize,
+			this.cellSize
+		);
+	}
+
+	drawDestination(positionX: number, positionY: number) {
+		this.drawHouse(positionX, positionY, 'green');
 	}
 
 	getRandomEmptyCell(): Point {
