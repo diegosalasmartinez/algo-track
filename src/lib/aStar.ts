@@ -96,12 +96,10 @@ export const aStar = (start: Point, end: Point, blockedSet: Set<string>): Point[
 	return [];
 };
 
-export const checkCollision = (remainPath: Point[], obstacle: Obstacle) => {
+export const checkCollision = (remainPath: Point[], obstacle: Point) => {
 	for (const point of remainPath) {
-		for (const tracePoint of obstacle.trace) {
-			if (point.x === tracePoint.x && point.y === tracePoint.y) {
-				return true;
-			}
+		if (point.x === obstacle.x && point.y === obstacle.y) {
+			return true;
 		}
 	}
 
