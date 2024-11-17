@@ -2,9 +2,7 @@
 	import { onMount } from 'svelte';
 	import { writable } from 'svelte/store';
 	import { Canvas } from '$lib/canvas';
-	import { createObstacle } from '$lib/obstacles';
 
-	let canvas: Canvas;
 	let start = writable({ x: 0, y: 0 });
 	let end = writable({ x: 0, y: 0 });
 	let currentTime = writable(0);
@@ -14,16 +12,16 @@
 		if (!canvasElement) return;
 		const ctx = canvasElement.getContext('2d') as CanvasRenderingContext2D;
 
-		canvas = new Canvas(ctx, canvasElement.width, canvasElement.height, start, end, currentTime);
+		new Canvas(
+			canvasElement,
+			ctx,
+			canvasElement.width,
+			canvasElement.height,
+			start,
+			end,
+			currentTime
+		);
 	});
-
-	const addObstacle = () => {
-		if (!canvas) return;
-
-		// TODO: Read the obstacles from user input
-		const obstacle = createObstacle(80, 80, 100, 'horizontal', 100000);
-		canvas.drawObstacle(obstacle);
-	};
 </script>
 
 <main>
@@ -39,7 +37,6 @@
 				<p>Destination: <span>{$end.x}, {$end.y}</span></p>
 			</div>
 			<div class="divider"></div>
-			<button on:click={addObstacle}>Add Obstacle</button>
 		</div>
 	</section>
 </main>
@@ -93,9 +90,9 @@
 		margin: 20px 0;
 	}
 
-    @media (max-width: 600px) {
-        section {
-            flex-direction: column;
-        }
-    }
+	@media (max-width: 600px) {
+		section {
+			flex-direction: column;
+		}
+	}
 </style>
