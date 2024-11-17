@@ -159,6 +159,7 @@ export class Canvas {
 	}
 
 	revalidatePath() {
+		// TODO: Validte if destination is reachable
 		this.collisionDetected = false;
 		this.traveller.clearPath(this.grid.getObstacles());
 		this.drawPath(this.traveller.currentPosition());

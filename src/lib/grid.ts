@@ -160,6 +160,7 @@ export class Grid {
 		this.obstacles = this.obstacles.filter((obs) => obs.x !== cellX || obs.y !== cellY);
 		this.blockedCells.delete(`${cellX},${cellY}`);
 		this.drawStreet(positionX, positionY);
+		// TODO: Send notification to canvas to revalidate path for a better solution
 	}
 
 	getObstacles() {
