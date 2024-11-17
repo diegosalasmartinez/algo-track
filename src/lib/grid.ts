@@ -2,30 +2,38 @@ import type { GridCell, Point } from './types';
 import { houses } from './data';
 
 export class Grid {
+	private readonly canvas: HTMLCanvasElement;
 	private readonly ctx: CanvasRenderingContext2D;
 	private readonly numColumns: number;
 	private readonly numRows: number;
 	private readonly cellSize: number;
 
+	private handleObstacleDetection: (obstacleDetected: Point) => void;
 	private house?: HTMLImageElement;
 	private grid: GridCell[][] = [];
 	private houses: Point[] = [];
 	private emptyRoad: Point[] = [];
-	private housesSet: Set<string> = new Set();
+	private obstacles: Point[] = [];
+	private blockedCells: Set<string> = new Set();
 
 	constructor(
+		canvas: HTMLCanvasElement,
 		ctx: CanvasRenderingContext2D,
 		gridWidth: number,
 		gridHeight: number,
-		cellSize: number
+		cellSize: number,
+		handleObstacleDetection: (obstacleDetected: Point) => void
 	) {
+		this.canvas = canvas;
 		this.ctx = ctx;
 		this.numColumns = gridWidth / cellSize;
 		this.numRows = gridHeight / cellSize;
 		this.cellSize = cellSize;
+		this.handleObstacleDetection = handleObstacleDetection;
 
 		this.initGrid();
 		this.setHouse();
+		this.addListeners();
 	}
 
 	setHouse() {
@@ -67,7 +75,7 @@ export class Grid {
 			const positionY = house.y * this.cellSize;
 
 			this.drawHouse(positionX, positionY);
-			this.housesSet.add(`${house.x},${house.y}`);
+			this.blockedCells.add(`${house.x},${house.y}`);
 		}
 	}
 
@@ -102,7 +110,59 @@ export class Grid {
 		return this.houses[randomIndex];
 	}
 
-	getHousesSet() {
-		return this.housesSet;
+	getBlockedCells() {
+		return this.blockedCells;
+	}
+
+	addListeners() {
+		this.canvas.addEventListener('click', (event: MouseEvent) => {
+			const rect = this.canvas.getBoundingClientRect();
+			const x = event.clientX - rect.left;
+			const y = event.clientY - rect.top;
+
+			const cellX = Math.floor(x / this.cellSize);
+			const cellY = Math.floor(y / this.cellSize);
+			const xIsValid = cellX >= 0 && cellX < this.numColumns;
+			const yIsValid = cellY >= 0 && cellY < this.numRows;
+
+			if (xIsValid && yIsValid) {
+				const cell = this.grid[cellY][cellX];
+				if (cell.type === 'street') {
+					cell.type = 'obstacle';
+					this.addObstacle(cellX, cellY);
+				} else if (cell.type === 'obstacle') {
+					cell.type = 'street';
+					this.deleteObstacle(cellX, cellY);
+				}
+			}
+		});
+	}
+
+	addObstacle(cellX: number, cellY: number) {
+		const positionX = cellX * this.cellSize;
+		const positionY = cellY * this.cellSize;
+
+		this.obstacles.push({ x: cellX, y: cellY });
+		this.blockedCells.add(`${cellX},${cellY}`);
+		this.drawObstacle(positionX, positionY);
+		this.handleObstacleDetection({ x: cellX, y: cellY });
+	}
+
+	drawObstacle(positionX: number, positionY: number) {
+		this.ctx.fillStyle = 'red';
+		this.ctx.fillRect(positionX, positionY, this.cellSize, this.cellSize);
+	}
+
+	deleteObstacle(cellX: number, cellY: number) {
+		const positionX = cellX * this.cellSize;
+		const positionY = cellY * this.cellSize;
+
+		this.obstacles = this.obstacles.filter((obs) => obs.x !== cellX || obs.y !== cellY);
+		this.blockedCells.delete(`${cellX},${cellY}`);
+		this.drawStreet(positionX, positionY);
+	}
+
+	getObstacles() {
+		return this.obstacles;
 	}
 }

@@ -1,6 +1,6 @@
 import type { Point } from './types';
 import { Path } from './path';
-import { aStar } from './aStar';
+import { aStar, checkCollision } from './aStar';
 
 export class Traveller {
 	private readonly ctx: CanvasRenderingContext2D;
@@ -50,8 +50,6 @@ export class Traveller {
 	}
 
 	drawTraveller() {
-		this.clearTraveller();
-
 		const currentPosition = this.currentPosition();
 		if (!currentPosition || !this.travellerImage) return;
 
@@ -113,16 +111,35 @@ export class Traveller {
 		return this.currentStep + 2 >= this.path.getPath().length;
 	}
 
+	clearPath(obstacles: Point[]) {
+		for (let i = 0; i < this.path.getPath().length - 1; i++) {
+			const point = this.path.getPath()[i];
+
+			if (i === this.currentStep) continue;
+			if (obstacles.some((obstacle) => obstacle.x === point.x && obstacle.y === point.y)) continue;
+
+			const positionX = point.x * this.cellSize;
+			const positionY = point.y * this.cellSize;
+
+			this.ctx.fillStyle = '#353935';
+			this.ctx.fillRect(positionX, positionY, this.cellSize, this.cellSize);
+		}
+	}
+
 	calculatePath(startPoint: Point, endPoint: Point, blockedCells: Set<string>) {
 		const newPath = aStar(startPoint, endPoint, blockedCells);
 		if (newPath.length === 0) return false;
 
 		this.currentStep = 0;
 
-		// We don't arrive the final position, so we need to clear it manually
 		this.path.clearFinalPath();
 		this.path.setPath(newPath);
 		this.path.drawPath();
 		return true;
+	}
+
+	checkIfPathNeedsToRecalculate(obstacle: Point) {
+		const remainPath = this.path.getPath().slice(this.currentStep);
+		return checkCollision(remainPath, obstacle);
 	}
 }

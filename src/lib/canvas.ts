@@ -1,9 +1,7 @@
 import { get, type Writable } from 'svelte/store';
-import { type Obstacle, type Point } from './types';
-import { ObstacleManager } from './obstacles';
+import { type Point } from './types';
 import { Traveller } from './traveller';
 import { Grid } from './grid';
-//import { checkCollision } from './aStar';
 
 export class Canvas {
 	private readonly ctx: CanvasRenderingContext2D;
@@ -15,13 +13,14 @@ export class Canvas {
 	private end: Writable<Point>;
 	private grid: Grid;
 	private traveller: Traveller;
-	private obstacleManager: ObstacleManager;
 
 	private currentTime: Writable<number>;
 	private frameCount: number = 0;
 	private frameRate: number = 50;
+	private collisionDetected: boolean = false;
 
 	constructor(
+		canvas: HTMLCanvasElement,
 		ctx: CanvasRenderingContext2D,
 		width: number,
 		height: number,
@@ -36,9 +35,15 @@ export class Canvas {
 		this.end = end;
 		this.currentTime = currentTime;
 
-		this.grid = new Grid(ctx, this.canvasWidth, this.canvasHeight, this.cellSize);
+		this.grid = new Grid(
+			canvas,
+			ctx,
+			this.canvasWidth,
+			this.canvasHeight,
+			this.cellSize,
+			this.handleObstacleDetection.bind(this)
+		);
 		this.traveller = new Traveller(this.ctx, this.cellSize);
-		this.obstacleManager = new ObstacleManager();
 
 		this.setStartPoint();
 		this.setEndPoint();
@@ -82,7 +87,7 @@ export class Canvas {
 	drawPath(startPoint: Point) {
 		const endPoint = get(this.end);
 
-		const blockedCells = new Set<string>(this.grid.getHousesSet());
+		const blockedCells = new Set<string>(this.grid.getBlockedCells());
 		blockedCells.delete(`${endPoint.x},${endPoint.y}`);
 
 		const hasSolution = this.traveller.calculatePath(startPoint, endPoint, blockedCells);
@@ -103,15 +108,14 @@ export class Canvas {
 		this.currentTime.set(get(this.currentTime) + 1);
 		this.frameCount = 0;
 
-		//const needsToRecalculate = this.checkIfPathNeedsToRecalculate();
-		//if (needsToRecalculate) {
-		//	this.clearRemainingPath();
-		//	this.startNextPath(currentPosition);
-		//	requestAnimationFrame(() => this.draw());
-		//	return;
-		//}
-
+		this.traveller.clearTraveller();
 		this.traveller.drawTraveller();
+
+		if (this.collisionDetected) {
+			this.revalidatePath();
+			requestAnimationFrame(() => this.drawCanvas());
+			return;
+		}
 
 		if (this.traveller.hasCompletedPath()) {
 			this.startNextPath(this.traveller.currentPosition());
@@ -141,29 +145,22 @@ export class Canvas {
 		this.grid.drawDestination(positionX, positionY);
 	}
 
-	drawObstacle(obstacle: Obstacle) {
-		this.ctx.strokeStyle = 'black';
-		this.ctx.lineWidth = 3;
-		this.ctx.beginPath();
-		this.ctx.moveTo(obstacle.trace[0].x, obstacle.trace[0].y);
-
-		for (let i = 1; i < obstacle.trace.length; i++) {
-			this.ctx.lineTo(obstacle.trace[i].x, obstacle.trace[i].y);
+	handleObstacleDetection(obstacle: Point) {
+		const currentPosition = this.traveller.currentPosition();
+		if (currentPosition.x === obstacle.x && currentPosition.y === obstacle.y) {
+			// If traveller is on the obstacle
+			// 1. no need to recalculate
+			// 2. delete obstacle
+			this.collisionDetected = false;
+			this.grid.deleteObstacle(obstacle.x, obstacle.y);
+		} else {
+			this.collisionDetected = this.traveller.checkIfPathNeedsToRecalculate(obstacle);
 		}
-		this.ctx.stroke();
-
-		this.obstacleManager.addObstacle(obstacle);
 	}
 
-	//checkIfPathNeedsToRecalculate() {
-	//	if (!this.obstacleManager.newObstacle) return false;
-	//
-	//	const remainPath = this.path.slice(this.currentStep);
-	//	const obstacle = this.obstacleManager.getLastObstacle();
-	//	const thereIsCollision = checkCollision(remainPath, obstacle);
-	//
-	//	this.obstacleManager.newObstacle = false;
-	//
-	//	return thereIsCollision;
-	//}
+	revalidatePath() {
+		this.collisionDetected = false;
+		this.traveller.clearPath(this.grid.getObstacles());
+		this.drawPath(this.traveller.currentPosition());
+	}
 }
