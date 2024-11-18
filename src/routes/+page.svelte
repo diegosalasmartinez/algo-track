@@ -3,9 +3,11 @@
 	import { writable } from 'svelte/store';
 	import { Canvas } from '$lib/canvas';
 
-	let start = writable({ x: 0, y: 0 });
-	let end = writable({ x: 0, y: 0 });
+	let endPosition = writable({ x: 0, y: 0 });
+	// TODO: update currentPosition
+	let currentPosition = writable({ x: 0, y: 0 });
 	let currentTime = writable(0);
+	let logs: string[] = [];
 
 	onMount(() => {
 		const canvasElement = document.getElementById('myCanvas') as HTMLCanvasElement;
@@ -17,11 +19,16 @@
 			ctx,
 			canvasElement.width,
 			canvasElement.height,
-			start,
-			end,
-			currentTime
+			endPosition,
+			currentPosition,
+			currentTime,
+			addLog
 		);
 	});
+
+	const addLog = (log: string) => {
+		logs = [...logs, log];
+	};
 </script>
 
 <main>
@@ -34,9 +41,18 @@
 			<div class="info">
 				<p>Current time: <span>{$currentTime}</span></p>
 				<p>Current algorithm: <span>A*</span></p>
-				<p>Destination: <span>{$end.x}, {$end.y}</span></p>
+				<p>Current position: <span>{$currentPosition.x}, {$currentPosition.y}</span></p>
+				<p>Destination: <span>{$endPosition.x}, {$endPosition.y}</span></p>
 			</div>
 			<div class="divider"></div>
+			<div class="logs">
+				<h3>Logs</h3>
+				<ul>
+					{#each logs as log}
+						<li>{log}</li>
+					{/each}
+				</ul>
+			</div>
 		</div>
 	</section>
 </main>

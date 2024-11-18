@@ -9,8 +9,10 @@ export class Canvas {
 	private readonly canvasHeight: number;
 	private readonly cellSize = 35;
 
-	private start: Writable<Point>;
+	private start: Point;
 	private end: Writable<Point>;
+	private currentPosition: Writable<Point>;
+	private addLog: (log: string) => void;
 	private grid: Grid;
 	private traveller: Traveller;
 
@@ -24,16 +26,18 @@ export class Canvas {
 		ctx: CanvasRenderingContext2D,
 		width: number,
 		height: number,
-		start: Writable<Point>,
 		end: Writable<Point>,
-		currentTime: Writable<number>
+		currentPosition: Writable<Point>,
+		currentTime: Writable<number>,
+		addLog: (log: string) => void
 	) {
 		this.ctx = ctx;
 		this.canvasWidth = width;
 		this.canvasHeight = height;
-		this.start = start;
 		this.end = end;
+		this.currentPosition = currentPosition;
 		this.currentTime = currentTime;
+		this.addLog = addLog;
 
 		this.grid = new Grid(
 			canvas,
@@ -45,27 +49,24 @@ export class Canvas {
 		);
 		this.traveller = new Traveller(this.ctx, this.cellSize);
 
-		this.setStartPoint();
-		this.setEndPoint();
-		this.setTraveller();
-	}
+		// Set start point
+		const startPoint = this.grid.getRandomEmptyCell();
+		this.start = startPoint;
+		this.currentPosition.set(startPoint);
 
-	setStartPoint() {
-		const point = this.grid.getRandomEmptyCell();
-		this.start.set(point);
-	}
+		// Set end point
+		const endPoint = this.grid.getRandomHouse();
+		this.end.set(endPoint);
+		this.addLog(`Set destination: ${endPoint.x},${endPoint.y}`);
 
-	setEndPoint() {
-		const point = this.grid.getRandomHouse();
-		this.end.set(point);
-	}
-
-	setTraveller() {
+		// Set traveller
 		const travellerImage = new Image();
 		travellerImage.src = '/car.png';
 		travellerImage.onload = () => {
 			this.traveller.setImage(travellerImage);
-			this.drawPath(get(this.start));
+			console.log('[DIEGO] here');
+			this.drawPath(this.start);
+			console.log('[DIEGO] here 2');
 			this.drawCanvas();
 		};
 	}
@@ -132,11 +133,16 @@ export class Canvas {
 		const positionY = lastEndPoint.y * this.cellSize;
 
 		let hasSolution = false;
+		let endPoint;
 		do {
-			this.setEndPoint();
+			endPoint = this.grid.getRandomHouse();
+			this.end.set(endPoint);
+
 			hasSolution = this.drawPath(currentPosition);
 			this.grid.drawHouse(positionX, positionY);
 		} while (!hasSolution);
+
+		this.addLog(`Set destination: ${endPoint.x},${endPoint.y}`);
 	}
 
 	drawDestination() {
