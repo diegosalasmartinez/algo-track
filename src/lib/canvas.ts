@@ -71,20 +71,6 @@ export class Canvas {
 		};
 	}
 
-	//clearRemainingPath() {
-	//	const elementWidth = 4;
-	//	const elementHeight = 4;
-	//
-	//	for (const point of this.path.slice(this.currentStep)) {
-	//		this.ctx.clearRect(
-	//			point.x - elementWidth / 2,
-	//			point.y - elementHeight / 2,
-	//			elementWidth,
-	//			elementHeight
-	//		);
-	//	}
-	//}
-
 	drawPath(startPoint: Point) {
 		const endPoint = get(this.end);
 
@@ -109,6 +95,9 @@ export class Canvas {
 		this.currentTime.set(get(this.currentTime) + 1);
 		this.frameCount = 0;
 
+		const currentPosition = this.traveller.currentPosition();
+		this.currentPosition.set(currentPosition);
+
 		this.traveller.clearTraveller();
 		this.traveller.drawTraveller();
 
@@ -119,7 +108,7 @@ export class Canvas {
 		}
 
 		if (this.traveller.hasCompletedPath()) {
-			this.startNextPath(this.traveller.currentPosition());
+			this.startNextPath(currentPosition);
 			requestAnimationFrame(() => this.drawCanvas());
 		} else {
 			this.traveller.nextStep();

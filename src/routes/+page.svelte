@@ -4,7 +4,6 @@
 	import { Canvas } from '$lib/canvas';
 
 	let endPosition = writable({ x: 0, y: 0 });
-	// TODO: update currentPosition
 	let currentPosition = writable({ x: 0, y: 0 });
 	let currentTime = writable(0);
 	let logs: string[] = [];
