@@ -30,6 +30,14 @@
 	};
 </script>
 
+<svelte:head>
+    <title>ALGO TRACK - Visualize Pathfinding Algorithms in Action</title>
+	<meta name="description" content="ALGO TRACK is an interactive tool to visualize pathfinding algorithms like A*. Navigate a car through a grid-based map with obstacles, houses, and destinations, and learn about algorithmic efficiency." />
+	<meta name="keywords" content="Pathfinding, A* algorithm, pathfinding visualization, algorithms, algo track, interactive tool, canvas visualization, programming, open-source" />
+	<meta name="author" content="Diego Salas @diegosalasmartinez" />
+	<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+</svelte:head>
+
 <main>
 	<h1>ALGO TRACK</h1>
 	<section class="grid">
