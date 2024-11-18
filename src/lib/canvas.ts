@@ -64,9 +64,7 @@ export class Canvas {
 		travellerImage.src = '/car.png';
 		travellerImage.onload = () => {
 			this.traveller.setImage(travellerImage);
-			console.log('[DIEGO] here');
 			this.drawPath(this.start);
-			console.log('[DIEGO] here 2');
 			this.drawCanvas();
 		};
 	}

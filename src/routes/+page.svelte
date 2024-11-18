@@ -43,7 +43,6 @@
 				<p>Current position: <span>{$currentPosition.x}, {$currentPosition.y}</span></p>
 				<p>Destination: <span>{$endPosition.x}, {$endPosition.y}</span></p>
 			</div>
-			<div class="divider"></div>
 			<div class="logs">
 				<h3>Logs</h3>
 				<ul>
@@ -59,8 +58,7 @@
 <style>
 	main {
 		display: flex;
-		height: 100vh;
-		flex: 1;
+		min-height: 100vh;
 		margin: 0;
 		padding: 0;
 		flex-direction: column;
@@ -74,18 +72,35 @@
 		font-weight: 800;
 	}
 
-	section {
+	.grid {
 		display: flex;
 		gap: 20px;
+		height: 670px;
+	}
+
+	@media (max-width: 720px) {
+		.grid {
+			flex-direction: column;
+			height: auto;
+		}
 	}
 
 	.canvas-drawer {
 		background-color: white;
 		border-radius: 10px;
 		padding: 20px;
+		height: 630px;
 	}
 
 	.settings {
+		display: flex;
+		flex-direction: column;
+		gap: 20px;
+		flex: 1;
+	}
+
+	.info,
+	.logs {
 		border: 1px solid #ccc;
 		border-radius: 10px;
 		padding: 10px 20px;
@@ -93,21 +108,41 @@
 		min-width: 200px;
 	}
 
-	.settings span {
+	.info span {
 		color: white;
 		font-weight: 600;
 	}
 
-	.divider {
-		width: 100%;
-		height: 1px;
-		background-color: #ccc;
-		margin: 20px 0;
+	.logs {
+		flex-grow: 1;
+		display: flex;
+		flex-direction: column;
+		overflow-y: hidden;
+		margin-bottom: 0;
+        max-height: none;
 	}
 
-	@media (max-width: 600px) {
-		section {
-			flex-direction: column;
+	@media (max-width: 720px) {
+		.logs {
+			margin-bottom: 20px;
+            max-height: 300px;
 		}
+	}
+
+	.logs h3 {
+		margin: 0;
+		padding: 10px 0;
+	}
+
+	.logs ul {
+		flex-grow: 1;
+		overflow-y: auto;
+		list-style: none;
+		padding: 0;
+		margin: 0;
+	}
+
+	.logs ul li {
+		padding: 5px 0;
 	}
 </style>
