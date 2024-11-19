@@ -1,38 +1,62 @@
-# create-svelte
+# Algo Track - Visualize Pathfinding Algorithms in Action
 
-Everything you need to build a Svelte project, powered by [`create-svelte`](https://github.com/sveltejs/kit/tree/main/packages/create-svelte).
+Algo Track is an interactive visualization tool that brings pathfinding algorithms to life!
+Designed for developers, students, and algorithm enthusiasts, this app simulates how an agent (a car) navigates through a grid-based map with obstacles, houses, and destinations.
+It’s the perfect way to learn and showcase the efficiency of algorithms like A\*.
 
-## Creating a project
+## Features
 
-If you're seeing this, you've probably already done this step. Congrats!
+- Interactive Grid System (add and remove obstacles in real-time)
+- Pathfinding Algorithms (initial implementation of A\*, with plans to add Dijkstra and BFS)
+- Dynamic Visualization (watch the agent navigate the grid)
 
-```bash
-# create a new project in the current directory
-npx sv create
+## Tech Stack
 
-# create a new project in my-app
-npx sv create my-app
+- Svelte: Framework for a reactive and efficient UI.
+- Canvas API: Used for rendering the interactive grid.
+
+## Deployment
+
+- Cloudflare Pages: For blazing-fast, serverless deployment.
+
+## Installation
+
+### Prerequisites
+
+- Node.js: Version 20 or later
+- npm: Package manager for dependencies
+
+### Clone the repository
+
+```js
+    git clone https://github.com/diegosalasmartinez/algo-track.git
+    cd algo-track
 ```
 
-## Developing
+### Install dependencies
 
-Once you've created a project and installed dependencies with `npm install` (or `pnpm install` or `yarn`), start a development server:
-
-```bash
-npm run dev
-
-# or start the server and open the app in a new browser tab
-npm run dev -- --open
+```js
+    npm install
 ```
 
-## Building
+### Run on development mode
 
-To create a production version of your app:
-
-```bash
-npm run build
+```js
+    npm run dev
 ```
 
-You can preview the production build with `npm run preview`.
+### Build for production
 
-> To deploy your app, you may need to install an [adapter](https://svelte.dev/docs/kit/adapters) for your target environment.
+```js
+    npm run build
+```
+
+## Live Demo
+
+Check out the live version of [ALGO TRACK](https://algo-track.pages.dev/).
+
+## Future Features
+
+- Algorithm Selection: A\*, Dijkstra and BFS.
+- Thematic Maps: Add textures and styles to the grid.
+- Analytics: Display step-by-step calculations and algorithm comparisons.
